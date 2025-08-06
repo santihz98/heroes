@@ -1,0 +1,17 @@
+FROM node:19-alpine3.15 AS dev
+WORKDIR /app
+COPY package.json package.json
+RUN yarn install --frozen-lockfile
+
+FROM node:19-alpine3.15 AS builder
+WORKDIR /app
+COPY --from=dev /app/node_modules ./node_modules
+COPY . .
+RUN yarn build
+
+FROM nginx:1.23.3 AS prod
+EXPOSE 80
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY assets/ /usr/share/nginx/html/assets
+COPY ./nginx-custom.conf /etc/nginx/conf.d/default.conf
+CMD [ "nginx", "-g", "daemon off;" ]
